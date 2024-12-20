@@ -1,4 +1,12 @@
-# TP1
+# Password Calculator
 # Summary
-An intern at your company has just wrapped up a project to create a password strength calculator. The tool works, but there's a catch—the code is a mess. It’s poorly structured, lacks comments, and doesn’t follow best practices. Now, it’s up to you to take this rough draft and turn it into a professional, industry-ready and open-source application. However, we didn’t want our competitor to use it for business purpose.  
-Your Mission: Your task is to step into the shoes of a software engineer and industrialize the intern’s code. This means transforming it from a basic, functional prototype into a polished, maintainable, and scalable piece of software.
+Le calculateur de robustesse de mot de passe est un outil conçu pour évaluer la robustesse des mots de passe. Il peut analyser la solidité des mots de passe tout en fournissant des retours, dans le but d'aider les utilisateurs à créer des mots de passe plus sécurisés.
+# Usage of the library
+- Analyser les caractéristiques des mots de passe
+- Représenter les caractéristiques des masques des mots de passe
+- Générer le hachage MD5 des mots de passe.
+
+
+
+
+
