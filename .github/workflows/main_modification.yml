@@ -1,0 +1,69 @@
+name: Main Branch Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Check out the repository code
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Step 2: Set up Java environment
+    - name: Setup Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    # Step 3: Cache Maven dependencies to speed up builds
+    - name: Cache Maven dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+
+    # Step 4: Build the project and run tests
+    - name: Build and Test
+      run: mvn clean verify
+
+    # Step 5: Publish artifacts to GitHub Maven Registry
+    - name: Publish to GitHub Maven Registry
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: mvn deploy
+
+    # Step 6: Generate Javadoc documentation
+    - name: Generate Javadoc
+      run: mvn javadoc:javadoc
+
+    # Step 7: Deploy Javadoc documentation to GitHub Pages
+    - name: Deploy Javadoc to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: target/site/apidocs
+        destination_dir: javadoc/${{ github.run_number }}
+
+    # Step 8: Generate Cobertura coverage report
+    - name: Generate Cobertura Coverage Report
+      run: mvn cobertura:cobertura
+
+    # Step 9: Deploy Cobertura report to GitHub Pages
+    - name: Deploy Cobertura Report to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: target/site/cobertura
+        destination_dir: cobertura/${{ github.run_number }}
+
+    # Step 10: Notify success
+    - name: Notify Success
+      run: echo "Deployment successful: Javadoc and Cobertura are available on GitHub Pages."
