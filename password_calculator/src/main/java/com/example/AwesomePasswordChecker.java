@@ -1,179 +1,158 @@
 /**
- * Le calculateur de robustesse de mot de passe est un outil conçu pour évaluer la robustesse des mots de passe. 
- * Il peut analyser la solidité des mots de passe tout en fournissant des retours, dans le but d'aider les 
+ * Le calculateur de robustesse de mot de passe est un outil conçu pour évaluer la robustesse des mots de passe.
+ * Il peut analyser la solidité des mots de passe tout en fournissant des retours, dans le but d'aider les
  * utilisateurs à créer des mots de passe plus sécurisés.
+ *
  * @author Haotong CHEN
  * @since 2024-12-20
  */
+
 package com.example;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class AwesomePasswordChecker {
 
-  private static AwesomePasswordChecker instance;
+    private static AwesomePasswordChecker instance;
 
-  private final List<double[]> clusterCenters = new ArrayList<>();
+    private final List<double[]> clusterCenters = new ArrayList<>();
 
-  /**
-   * Get a singleton instance of AwesomePasswordChecker
-   *
-   * @param file The file containing cluster centers in CSV format.
-   * @return An instance of AwesomePasswordChecker.
-   * @throws IOException If the file cannot be read.
-   */
-  public static AwesomePasswordChecker getInstance(File file) throws IOException {
-    if (instance == null) {
-          instance = new AwesomePasswordChecker(new FileInputStream(file));
+    /**
+     * Get a singleton instance of AwesomePasswordChecker.
+     *
+     * @param file The file containing cluster centers in CSV format.
+     * @return An instance of AwesomePasswordChecker.
+     * @throws IOException If the file cannot be read.
+     */
+    public static AwesomePasswordChecker getInstance(File file) throws IOException {
+        if (instance == null) {
+            instance = new AwesomePasswordChecker(new FileInputStream(file));
+        }
+        return instance;
     }
-    return instance;
-  }
-  
-  /**
-   * Gets a singleton instance of AwesomePasswordChecker
-   *
-   * @return An instance of AwesomePasswordChecker.
-   * @throws IOException If the resource cannot be read.
-   */
-  public static AwesomePasswordChecker getInstance() throws IOException {
-    if (instance == null) {
-      InputStream is = AwesomePasswordChecker.class.getClassLoader().getResourceAsStream("cluster_centers_HAC_aff.csv");
-      instance = new AwesomePasswordChecker(is);
+
+    /**
+     * Gets a singleton instance of AwesomePasswordChecker.
+     *
+     * @return An instance of AwesomePasswordChecker.
+     * @throws IOException If the resource cannot be read.
+     */
+    public static AwesomePasswordChecker getInstance() throws IOException {
+        if (instance == null) {
+            InputStream is = AwesomePasswordChecker.class
+                    .getClassLoader()
+                    .getResourceAsStream("cluster_centers_HAC_aff.csv");
+            instance = new AwesomePasswordChecker(is);
+        }
+        return instance;
     }
-      return instance;
-  }
-  
-  /**
-   * Private constructor for loading from the input stream.
-   *
-   * @param is The input stream.
-   * @throws IOException If the input stream cannot be read.
-   */
-  private AwesomePasswordChecker(InputStream is) throws IOException {
-    BufferedReader br = new BufferedReader(new InputStreamReader(is));
-  String line;
-    while((line = br.readLine()) != null){
-      String[] values = line.split(";");
-      double[] center = new double[values.length];
-      
-      for (int i = 0; i < values.length; ++i) {
-        center[i] = Double.parseDouble(values[i]);
-      }
-      clusterCenters.add(center);
+
+    /**
+     * Private constructor for loading from the input stream.
+     *
+     * @param is The input stream.
+     * @throws IOException If the input stream cannot be read.
+     */
+    private AwesomePasswordChecker(InputStream is) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(is));
+        String line;
+        while ((line = br.readLine()) != null) {
+            String[] values = line.split(";");
+            double[] center = new double[values.length];
+            for (int i = 0; i < values.length; ++i) {
+                center[i] = Double.parseDouble(values[i]);
+            }
+            clusterCenters.add(center);
+        }
+        br.close();
     }
-    br.close();
-  }
-  /**
-   * Generates a feature mask array for the given password.
-   *
-   * @param password The password to analyze.
-   * @return A feature mask array.
-   */
-  public int[] maskAff(String password) {
-    int[] maskArray = new int[28]; 
-    int limit = Math.min(password.length(), 28);
+
+    /**
+     * Generates a feature mask array for the given password.
+     *
+     * @param password The password to analyze.
+     * @return A feature mask array.
+     */
+    public int[] maskAff(String password) {
+        int[] maskArray = new int[28];
+        int limit = Math.min(password.length(), 28);
+
+        for (int i = 0; i < limit; ++i) {
+            char c = password.charAt(i);
+            switch (c) {
+                case 'e': case 's': case 'a': case 'i': case 't': case 'n':
+                case 'r': case 'u': case 'o': case 'l':
+                    maskArray[i] = 1;
+                    break;
+                case 'E': case 'S': case 'A': case 'I': case 'T': case 'N':
+                case 'R': case 'U': case 'O': case 'L':
+                    maskArray[i] = 3;
+                    break;
+                case '>': case '<': case '-': case '?': case '.': case '/':
+                case '!': case '%': case '@': case '&':
+                    maskArray[i] = 6;
+                    break;
+                default:
+                    if (Character.isLowerCase(c)) {
+                        maskArray[i] = 2;
+                    } else if (Character.isUpperCase(c)) {
+                        maskArray[i] = 4;
+                    } else if (Character.isDigit(c)) {
+                        maskArray[i] = 5;
+                    } else {
+                        maskArray[i] = 7;
+                    }
+            }
+        }
+        return maskArray;
+    }
+
+    /**
+     * Calculates the minimum Euclidean distance between the given password
+     * and the loaded cluster centers.
+     *
+     * @param password The password to analyze.
+     * @return The minimum Euclidean distance.
+     */
+    public double getDIstance(String password) {
+        int[] maskArray = maskAff(password);
+        double minDistance = Double.MAX_VALUE;
+        for (double[] center : clusterCenters) {
+            minDistance = Math.min(euclideanDistance(maskArray, center), minDistance);
+        }
+        return minDistance;
+    }
+
+    /**
+     * Calculates the Euclidean distance between two arrays.
+     *
+     * @param a An integer array.
+     * @param b A double array.
+     * @return The Euclidean distance.
+     */
+    private double euclideanDistance(int[] a, double[] b) {
+        double sum = 0;
+        for (int i = 0; i < a.length; i++) {
+            sum += (a[i] - b[i]) * (a[i] + b[i]);
+        }
+        return Math.sqrt(sum);
+    }
     
-    for (int i = 0; i < limit; ++i) {
-          char c = password.charAt(i);
-      switch (c) {
-        case 'e': 
-        case 's':
-        case 'a':
-        case 'i':
-        case 't':
-        case 'n':
-        case 'r':
-        case 'u':
-        case 'o':
-        case 'l':
-            maskArray[i] = 1;
-          break;
-        case 'E':
-        case 'S':
-        case 'A':
-        case 'I':
-        case 'T':
-        case 'N':
-        case 'R':
-        case 'U':
-        case 'O':
-        case 'L':
-          maskArray[i] = 3;
-          break;
-        case '>':
-        case '<':
-        case '-':
-        case '?':
-        case '.':
-        case '/':
-        case '!':
-        case '%':
-        case '@':
-        case '&':
-          maskArray[i] = 6;
-          break;
-        default:
-          if (Character.isLowerCase(c)) {
-            maskArray[i] = 2;
-          } else if (Character.isUpperCase(c)) {
-            maskArray[i] = 4;
-          } else if (Character.isDigit(c)) {
-            maskArray[i] = 5;
-          } else {
-            maskArray[i] = 7;
-          }
-      }
-    }
-    return maskArray;
-  }
-
-  /**
-   * Calculates the minimum Euclidean distance between the given password
-   * and the loaded cluster centers.
-   *
-   * @param password The password to analyze.
-   * @return The minimum Euclidean distance.
-   */
-  public double getDIstance(String password) {
-    int[] maskArray = maskAff(password);
-    double minDistance = Double.MAX_VALUE;
-    for (double[] center : clusterCenters) {
-      minDistance = Math.min(euclideanDistance(maskArray, center), minDistance);
-    }
-    return minDistance;
-  }
-
-  /**
-   * Calculates the Euclidean distance between two arrays.
-   *
-   * @param a An integer array.
-   * @param b A double array.
-   * @return The Euclidean distance.
-   */
-  private double euclideanDistance(int[] a, double[] b) {
-    double sum = 0;
-    for (int i = 0; i < a.length; i++) {
-      sum += (a[i] - b[i]) * (a[i] + b[i]);
-    }
-    return Math.sqrt(sum);
-  }
   /**
    * Computes the MD5 hash.
    *
    * @param input The input string.
    * @return The MD5 hash as a hexadecimal string.
+   * 
    */
   public static String ComputeMD5(String input) {
     byte[] message = input.getBytes();
