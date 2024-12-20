@@ -1,0 +1,55 @@
+name: Pull Request Checks
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Java 
+    - name: Setup Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    # Checkstyle
+    - name: Run Checkstyle
+      run: mvn checkstyle:check
+
+    # Unit Tests passed
+    - name: Run Unit Tests with Coverage
+      run: mvn clean verify
+
+    # Test coverage reach 90%
+    - name: Verify Test Coverage
+      run: |
+        COVERAGE=$(grep -Po 'instruction, *\K\d+\.\d+(?=%)' target/site/jacoco/index.html)
+        if (( $(echo "$COVERAGE < 90.0" | bc -l) )); then
+          echo "Test coverage is below 90%: $COVERAGE%"
+          exit 1
+        fi
+      shell: bash
+
+    # Performance Tests passed
+    - name: Run Performance Tests
+      run: |
+        mvn clean package
+        java -jar target/benchmarks.jar
+
+    # SAST run successfully without default(Semgrep)
+    - name: Run SAST (Semgrep)
+      uses: returntocorp/semgrep-action@v1
+      with:
+        config: 'auto'
+
+    # All checks passed
+    - name: Success
+      run: echo "All checks passed!"
