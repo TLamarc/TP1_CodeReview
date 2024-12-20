@@ -1,3 +1,10 @@
+/**
+ * Le calculateur de robustesse de mot de passe est un outil conçu pour évaluer la robustesse des mots de passe. 
+ * Il peut analyser la solidité des mots de passe tout en fournissant des retours, dans le but d'aider les 
+ * utilisateurs à créer des mots de passe plus sécurisés.
+ * @author Haotong CHEN
+ * @since 2024-12-20
+ */
 package com.example;
 
 import java.nio.ByteBuffer;
@@ -20,6 +27,13 @@ public class AwesomePasswordChecker {
 
   private final List<double[]> clusterCenters = new ArrayList<>();
 
+  /**
+   * Get a singleton instance of AwesomePasswordChecker
+   *
+   * @param file The file containing cluster centers in CSV format.
+   * @return An instance of AwesomePasswordChecker.
+   * @throws IOException If the file cannot be read.
+   */
   public static AwesomePasswordChecker getInstance(File file) throws IOException {
     if (instance == null) {
           instance = new AwesomePasswordChecker(new FileInputStream(file));
@@ -27,6 +41,12 @@ public class AwesomePasswordChecker {
     return instance;
   }
   
+  /**
+   * Gets a singleton instance of AwesomePasswordChecker
+   *
+   * @return An instance of AwesomePasswordChecker.
+   * @throws IOException If the resource cannot be read.
+   */
   public static AwesomePasswordChecker getInstance() throws IOException {
     if (instance == null) {
       InputStream is = AwesomePasswordChecker.class.getClassLoader().getResourceAsStream("cluster_centers_HAC_aff.csv");
@@ -34,7 +54,13 @@ public class AwesomePasswordChecker {
     }
       return instance;
   }
-      
+  
+  /**
+   * Private constructor for loading from the input stream.
+   *
+   * @param is The input stream.
+   * @throws IOException If the input stream cannot be read.
+   */
   private AwesomePasswordChecker(InputStream is) throws IOException {
     BufferedReader br = new BufferedReader(new InputStreamReader(is));
   String line;
@@ -49,7 +75,12 @@ public class AwesomePasswordChecker {
     }
     br.close();
   }
-
+  /**
+   * Generates a feature mask array for the given password.
+   *
+   * @param password The password to analyze.
+   * @return A feature mask array.
+   */
   public int[] maskAff(String password) {
     int[] maskArray = new int[28]; 
     int limit = Math.min(password.length(), 28);
@@ -108,6 +139,13 @@ public class AwesomePasswordChecker {
     return maskArray;
   }
 
+  /**
+   * Calculates the minimum Euclidean distance between the given password
+   * and the loaded cluster centers.
+   *
+   * @param password The password to analyze.
+   * @return The minimum Euclidean distance.
+   */
   public double getDIstance(String password) {
     int[] maskArray = maskAff(password);
     double minDistance = Double.MAX_VALUE;
@@ -117,6 +155,13 @@ public class AwesomePasswordChecker {
     return minDistance;
   }
 
+  /**
+   * Calculates the Euclidean distance between two arrays.
+   *
+   * @param a An integer array.
+   * @param b A double array.
+   * @return The Euclidean distance.
+   */
   private double euclideanDistance(int[] a, double[] b) {
     double sum = 0;
     for (int i = 0; i < a.length; i++) {
@@ -124,7 +169,12 @@ public class AwesomePasswordChecker {
     }
     return Math.sqrt(sum);
   }
-
+  /**
+   * Computes the MD5 hash.
+   *
+   * @param input The input string.
+   * @return The MD5 hash as a hexadecimal string.
+   */
   public static String ComputeMD5(String input) {
     byte[] message = input.getBytes();
     int messageLenBytes = message.length;
